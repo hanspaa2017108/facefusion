@@ -28,7 +28,6 @@ from facefusion.temp_helper import clear_temp_directory, create_temp_directory, 
 from facefusion.typing import Args, ErrorCode
 from facefusion.vision import get_video_frame, pack_resolution, read_image, read_static_images, restrict_image_resolution, restrict_trim_frame, restrict_video_fps, restrict_video_resolution, unpack_resolution
 
-
 def cli() -> None:
 	signal.signal(signal.SIGINT, lambda signal_number, frame: graceful_exit(0))
 	program = create_program()
@@ -44,7 +43,6 @@ def cli() -> None:
 			program.print_help()
 	else:
 		hard_exit(2)
-
 
 def route(args : Args) -> None:
 	system_memory_limit = state_manager.get_item('system_memory_limit')
@@ -86,7 +84,6 @@ def route(args : Args) -> None:
 		error_code = route_job_runner()
 		hard_exit(error_code)
 
-
 def pre_check() -> bool:
 	if sys.version_info < (3, 10):
 		logger.error(wording.get('python_not_supported').format(version = '3.10'), __name__)
@@ -98,7 +95,6 @@ def pre_check() -> bool:
 		logger.error(wording.get('ffmpeg_not_installed'), __name__)
 		return False
 	return True
-
 
 def common_pre_check() -> bool:
 	common_modules =\
@@ -114,13 +110,11 @@ def common_pre_check() -> bool:
 
 	return all(module.pre_check() for module in common_modules)
 
-
 def processors_pre_check() -> bool:
 	for processor_module in get_processors_modules(state_manager.get_item('processors')):
 		if not processor_module.pre_check():
 			return False
 	return True
-
 
 def force_download() -> ErrorCode:
 	common_modules =\
@@ -147,7 +141,6 @@ def force_download() -> ErrorCode:
 						return 1
 
 	return 0
-
 
 def route_job_manager(args : Args) -> ErrorCode:
 	if state_manager.get_item('command') == 'job-list':
@@ -219,7 +212,6 @@ def route_job_manager(args : Args) -> ErrorCode:
 		return 1
 	return 1
 
-
 def route_job_runner() -> ErrorCode:
 	if state_manager.get_item('command') == 'job-run':
 		logger.info(wording.get('running_job').format(job_id = state_manager.get_item('job_id')), __name__)
@@ -251,7 +243,6 @@ def route_job_runner() -> ErrorCode:
 		return 1
 	return 2
 
-
 def process_headless(args : Args) -> ErrorCode:
 	job_id = job_helper.suggest_job_id('headless')
 	step_args = reduce_step_args(args)
@@ -259,7 +250,6 @@ def process_headless(args : Args) -> ErrorCode:
 	if job_manager.create_job(job_id) and job_manager.add_step(job_id, step_args) and job_manager.submit_job(job_id) and job_runner.run_job(job_id, process_step):
 		return 0
 	return 1
-
 
 def process_batch(args : Args) -> ErrorCode:
 	job_id = job_helper.suggest_job_id('batch')
@@ -289,7 +279,6 @@ def process_batch(args : Args) -> ErrorCode:
 				return 0
 	return 1
 
-
 def process_step(job_id : str, step_index : int, step_args : Args) -> bool:
 	clear_reference_faces()
 	step_total = job_manager.count_step_total(job_id)
@@ -302,7 +291,6 @@ def process_step(job_id : str, step_index : int, step_args : Args) -> bool:
 		return error_code == 0
 	return False
 
-
 def conditional_process() -> ErrorCode:
 	start_time = time()
 	for processor_module in get_processors_modules(state_manager.get_item('processors')):
@@ -314,7 +302,6 @@ def conditional_process() -> ErrorCode:
 	if is_video(state_manager.get_item('target_path')):
 		return process_video(start_time)
 	return 0
-
 
 def conditional_append_reference_faces() -> None:
 	if 'reference' in state_manager.get_item('face_selector_mode') and not get_reference_faces():
@@ -336,7 +323,6 @@ def conditional_append_reference_faces() -> None:
 					abstract_reference_faces = sort_and_filter_faces(get_many_faces([ abstract_reference_frame ]))
 					abstract_reference_face = get_one_face(abstract_reference_faces, state_manager.get_item('reference_face_position'))
 					append_reference_face(processor_module.__name__, abstract_reference_face)
-
 
 def process_image(start_time : float) -> ErrorCode:
 	if analyse_image(state_manager.get_item('target_path')):
@@ -386,7 +372,6 @@ def process_image(start_time : float) -> ErrorCode:
 		return 1
 	process_manager.end()
 	return 0
-
 
 def process_video(start_time : float) -> ErrorCode:
 	trim_frame_start, trim_frame_end = restrict_trim_frame(state_manager.get_item('target_path'), state_manager.get_item('trim_frame_start'), state_manager.get_item('trim_frame_end'))
@@ -474,7 +459,6 @@ def process_video(start_time : float) -> ErrorCode:
 		return 1
 	process_manager.end()
 	return 0
-
 
 def is_process_stopping() -> bool:
 	if process_manager.is_stopping():
