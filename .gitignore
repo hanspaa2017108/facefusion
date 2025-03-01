@@ -4,3 +4,5 @@ __pycache__
 .jobs
 .idea
 .vscode
+static_assets/
+output.mp4
