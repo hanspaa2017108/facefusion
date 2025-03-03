@@ -382,7 +382,18 @@ def process_frame(inputs : FaceEnhancerInputs) -> VisionFrame:
 def process_frames(source_path : List[str], queue_payloads : List[QueuePayload], update_progress : UpdateProgress) -> None:
 	reference_faces = get_reference_faces() if 'reference' in state_manager.get_item('face_selector_mode') else None
 
+		#retrieving new flags new frame start and end from state_manager
+	frame_start = state_manager.get_item('frame_start')
+	frame_end = state_manager.get_item('frame_end')
+
 	for queue_payload in process_manager.manage(queue_payloads):
+		frame_number = queue_payload['frame_number']
+
+		#check if frame is outside the specified range
+		if (frame_start is not None and frame_number < frame_start) or (frame_end is not None and frame_number >= frame_end):
+			update_progress(1)
+			continue
+
 		target_vision_path = queue_payload['frame_path']
 		target_vision_frame = read_image(target_vision_path)
 		output_vision_frame = process_frame(

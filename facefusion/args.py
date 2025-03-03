@@ -82,6 +82,11 @@ def apply_args(args : Args, apply_state_item : ApplyStateItem) -> None:
 	apply_state_item('trim_frame_end', args.get('trim_frame_end'))
 	apply_state_item('temp_frame_format', args.get('temp_frame_format'))
 	apply_state_item('keep_temp', args.get('keep_temp'))
+
+	# new custom args
+	apply_state_item('frame_start', args.get('frame_start'))
+	apply_state_item('frame_end', args.get('frame_end'))
+
 	# output creation
 	apply_state_item('output_image_quality', args.get('output_image_quality'))
 	if is_image(args.get('target_path')):
