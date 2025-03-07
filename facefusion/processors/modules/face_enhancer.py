@@ -404,64 +404,6 @@ def process_frames(source_path : List[str], queue_payloads : List[QueuePayload],
 		write_image(target_vision_path, output_vision_frame)
 		update_progress(1)
 
-# def process_frames(source_path : List[str], queue_payloads : List[QueuePayload], update_progress : UpdateProgress) -> None:
-#     reference_faces = get_reference_faces() if 'reference' in state_manager.get_item('face_selector_mode') else None
-
-#     # Get frame range limits
-#     frame_start = state_manager.get_item('frame_start')
-#     frame_end = state_manager.get_item('frame_end')
-    
-#     # Determine transition frames for smoother blending
-#     blend_range = 5  # Number of frames to blend at boundaries
-    
-#     for queue_payload in process_manager.manage(queue_payloads):
-#         frame_number = queue_payload.get('frame_number', 0)
-#         target_vision_path = queue_payload['frame_path']
-#         target_vision_frame = read_image(target_vision_path)
-        
-#         # Default: full processing if no range specified
-#         blend_factor = 1.0
-        
-#         # Handle frame range with blending
-#         if frame_start is not None or frame_end is not None:
-#             # Check if frame is completely outside range
-#             if (frame_start is not None and frame_number < frame_start - blend_range) or \
-#                (frame_end is not None and frame_number >= frame_end + blend_range):
-#                 update_progress(1)
-#                 continue
-                
-#             # Calculate blend factor for transition frames
-#             if frame_start is not None and frame_number < frame_start:
-#                 # Blend in: 0.0 at (start-blend_range), 1.0 at start
-#                 blend_factor = (frame_number - (frame_start - blend_range)) / blend_range
-#             elif frame_end is not None and frame_number >= frame_end:
-#                 # Blend out: 1.0 at (end-1), 0.0 at (end+blend_range-1)
-#                 blend_factor = 1.0 - ((frame_number - frame_end + 1) / blend_range)
-                
-#             # Ensure blend factor is within range [0,1]
-#             blend_factor = max(0.0, min(1.0, blend_factor))
-        
-#         # Process the frame
-#         processed_frame = process_frame({
-#             'reference_faces': reference_faces,
-#             'target_vision_frame': target_vision_frame
-#         })
-        
-#         # Apply blending if needed
-#         if blend_factor < 1.0:
-#             # Blend between original and processed frames
-#             output_frame = cv2.addWeighted(
-#                 target_vision_frame, 1 - blend_factor,
-#                 processed_frame, blend_factor,
-#                 0
-#             )
-#             write_image(target_vision_path, output_frame)
-#         else:
-#             # Full enhancement
-#             write_image(target_vision_path, processed_frame)
-            
-#         update_progress(1)
-
 def process_image(source_path : str, target_path : str, output_path : str) -> None:
 	reference_faces = get_reference_faces() if 'reference' in state_manager.get_item('face_selector_mode') else None
 	target_vision_frame = read_static_image(target_path)
