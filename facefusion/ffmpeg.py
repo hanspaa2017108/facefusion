@@ -13,7 +13,6 @@ from facefusion.temp_helper import get_temp_file_path, get_temp_frame_paths, get
 from facefusion.typing import AudioBuffer, Fps, OutputVideoPreset, UpdateProgress
 from facefusion.vision import count_trim_frame_total, detect_video_duration, restrict_video_fps
 
-
 def run_ffmpeg_with_progress(args: List[str], update_progress : UpdateProgress) -> subprocess.Popen[bytes]:
 	log_level = state_manager.get_item('log_level')
 	commands = [ shutil.which('ffmpeg'), '-hide_banner', '-nostats', '-loglevel', 'error', '-progress', '-' ]
@@ -39,7 +38,6 @@ def run_ffmpeg_with_progress(args: List[str], update_progress : UpdateProgress) 
 		process.terminate()
 	return process
 
-
 def run_ffmpeg(args : List[str]) -> subprocess.Popen[bytes]:
 	log_level = state_manager.get_item('log_level')
 	commands = [ shutil.which('ffmpeg'), '-hide_banner', '-nostats', '-loglevel', 'error' ]
@@ -59,12 +57,10 @@ def run_ffmpeg(args : List[str]) -> subprocess.Popen[bytes]:
 		process.terminate()
 	return process
 
-
 def open_ffmpeg(args : List[str]) -> subprocess.Popen[bytes]:
 	commands = [ shutil.which('ffmpeg'), '-loglevel', 'quiet' ]
 	commands.extend(args)
 	return subprocess.Popen(commands, stdin = subprocess.PIPE, stdout = subprocess.PIPE)
-
 
 def log_debug(process : subprocess.Popen[bytes]) -> None:
 	_, stderr = process.communicate()
@@ -73,7 +69,6 @@ def log_debug(process : subprocess.Popen[bytes]) -> None:
 	for error in errors:
 		if error.strip():
 			logger.debug(error.strip(), __name__)
-
 
 def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fps : Fps, trim_frame_start : int, trim_frame_end : int) -> bool:
 	extract_frame_total = count_trim_frame_total(target_path, trim_frame_start, trim_frame_end)
@@ -93,7 +88,6 @@ def extract_frames(target_path : str, temp_video_resolution : str, temp_video_fp
 	with tqdm(total = extract_frame_total, desc = wording.get('extracting'), unit = 'frame', ascii = ' =', disable = state_manager.get_item('log_level') in [ 'warn', 'error' ]) as progress:
 		process = run_ffmpeg_with_progress(commands, lambda frame_number: progress.update(frame_number - progress.n))
 		return process.returncode == 0
-
 
 def merge_video(target_path : str, output_video_resolution : str, output_video_fps: Fps) -> bool:
 	output_video_encoder = state_manager.get_item('output_video_encoder')
@@ -128,7 +122,6 @@ def merge_video(target_path : str, output_video_resolution : str, output_video_f
 		process = run_ffmpeg_with_progress(commands, lambda frame_number: progress.update(frame_number - progress.n))
 		return process.returncode == 0
 
-
 def concat_video(output_path : str, temp_output_paths : List[str]) -> bool:
 	output_audio_encoder = state_manager.get_item('output_audio_encoder')
 	concat_video_path = tempfile.mktemp()
@@ -144,13 +137,11 @@ def concat_video(output_path : str, temp_output_paths : List[str]) -> bool:
 	remove_file(concat_video_path)
 	return process.returncode == 0
 
-
 def copy_image(target_path : str, temp_image_resolution : str) -> bool:
 	temp_file_path = get_temp_file_path(target_path)
 	temp_image_compression = calc_image_compression(target_path, 100)
 	commands = [ '-i', target_path, '-s', str(temp_image_resolution), '-q:v', str(temp_image_compression), '-y', temp_file_path ]
 	return run_ffmpeg(commands).returncode == 0
-
 
 def finalize_image(target_path : str, output_path : str, output_image_resolution : str) -> bool:
 	output_image_quality = state_manager.get_item('output_image_quality')
@@ -159,13 +150,11 @@ def finalize_image(target_path : str, output_path : str, output_image_resolution
 	commands = [ '-i', temp_file_path, '-s', str(output_image_resolution), '-q:v', str(output_image_compression), '-y', output_path ]
 	return run_ffmpeg(commands).returncode == 0
 
-
 def calc_image_compression(image_path : str, image_quality : int) -> int:
 	is_webp = filetype.guess_mime(image_path) == 'image/webp'
 	if is_webp:
 		image_quality = 100 - image_quality
 	return round(31 - (image_quality * 0.31))
-
 
 def read_audio_buffer(target_path : str, sample_rate : int, channel_total : int) -> Optional[AudioBuffer]:
 	commands = [ '-i', target_path, '-vn', '-f', 's16le', '-acodec', 'pcm_s16le', '-ar', str(sample_rate), '-ac', str(channel_total), '-' ]
@@ -174,7 +163,6 @@ def read_audio_buffer(target_path : str, sample_rate : int, channel_total : int)
 	if process.returncode == 0:
 		return audio_buffer
 	return None
-
 
 def restore_audio(target_path : str, output_path : str, output_video_fps : Fps, trim_frame_start : int, trim_frame_end : int) -> bool:
 	output_audio_encoder = state_manager.get_item('output_audio_encoder')
@@ -191,14 +179,12 @@ def restore_audio(target_path : str, output_path : str, output_video_fps : Fps, 
 	commands.extend([ '-i', target_path, '-c:v', 'copy', '-c:a', output_audio_encoder, '-map', '0:v:0', '-map', '1:a:0', '-t', str(temp_video_duration), '-y', output_path ])
 	return run_ffmpeg(commands).returncode == 0
 
-
 def replace_audio(target_path : str, audio_path : str, output_path : str) -> bool:
 	output_audio_encoder = state_manager.get_item('output_audio_encoder')
 	temp_file_path = get_temp_file_path(target_path)
 	temp_video_duration = detect_video_duration(temp_file_path)
 	commands = [ '-i', temp_file_path, '-i', audio_path, '-c:v', 'copy', '-c:a', output_audio_encoder, '-t', str(temp_video_duration), '-y', output_path ]
 	return run_ffmpeg(commands).returncode == 0
-
 
 def map_nvenc_preset(output_video_preset : OutputVideoPreset) -> Optional[str]:
 	if output_video_preset in [ 'ultrafast', 'superfast', 'veryfast', 'faster', 'fast' ]:
@@ -209,7 +195,6 @@ def map_nvenc_preset(output_video_preset : OutputVideoPreset) -> Optional[str]:
 		return 'slow'
 	return None
 
-
 def map_amf_preset(output_video_preset : OutputVideoPreset) -> Optional[str]:
 	if output_video_preset in [ 'ultrafast', 'superfast', 'veryfast' ]:
 		return 'speed'
@@ -218,7 +203,6 @@ def map_amf_preset(output_video_preset : OutputVideoPreset) -> Optional[str]:
 	if output_video_preset in [ 'slow', 'slower', 'veryslow' ]:
 		return 'quality'
 	return None
-
 
 def map_qsv_preset(output_video_preset : OutputVideoPreset) -> Optional[str]:
 	if output_video_preset in [ 'ultrafast', 'superfast', 'veryfast', 'faster', 'fast' ]:
