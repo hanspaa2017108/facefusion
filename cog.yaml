@@ -1,14 +1,14 @@
 build:
-  gpu: true
-  cuda: "11.8"
+  gpu: false
+  # Remove CUDA version as it's not applicable
   python_version: "3.10"
   run:
     # Create only the .assets/models directory
     - mkdir -p .assets/models
-    # Install PyTorch with CUDA support
-    - pip install torch==2.0.0+cu118 torchvision==0.15.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+    # Install PyTorch with MPS (Metal) support instead of CUDA
+    - pip install torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   python_packages:
-    - "onnxruntime-gpu==1.15.0"
+    - "onnxruntime==1.15.0"  # Regular version instead of GPU
     - "insightface==0.7.3"
     - "opencv-python==4.8.0.76"
     - "numpy==1.24.3"
@@ -19,13 +19,9 @@ build:
     - "pyyaml>=6.0"
     - "scipy==1.10.1"
     - "filetype==1.2.0"
-    - "requests>=2.28.0"  # Added for downloading models in setup()
+    - "requests>=2.28.0"
   system_packages:
     - ffmpeg
-    - libsm6
-    - libxext6
-    - curl
-    - git
-    - libgl1-mesa-glx
-    - libglib2.0-0
+    # Remove Linux-specific packages that don't exist on macOS
+    # Add any macOS-specific dependencies if needed
 predict: "predict.py:Predictor"
