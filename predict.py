@@ -215,7 +215,7 @@ class Predictor(BasePredictor):
         # Execution Parameters
         execution_providers: str = Input(
             description="Execution providers for processing",
-            default="cpu",
+            default="cuda",
             choices=["cpu", "cuda", "coreml"]
         ),
         execution_thread_count: int = Input(
