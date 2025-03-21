@@ -159,7 +159,7 @@ class Predictor(BasePredictor):
         cmd.extend([
             "--face-enhancer-model", "gfpgan_1.4",
             "--face-swapper-model", "inswapper_128",
-            "--execution-providers", "cpu",
+            "--execution-providers", "cuda",
             "--execution-thread-count", "4",
             "--execution-queue-count", "1",
             # "--download-providers", "github",
