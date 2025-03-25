@@ -3,6 +3,7 @@ import tempfile
 import subprocess
 import time
 import shutil
+import json
 from pathlib import Path as PathLib
 from cog import BasePredictor, Path, Input
 
@@ -16,12 +17,8 @@ class Predictor(BasePredictor):
         self,
         source: Path = Input(description="Source face image to use for swapping"),
         target: Path = Input(description="Target video to apply face swap to"),
-        reference_face_position: int = Input(
-            description="Default face position in source (0 = first face)",
-            default=0,
-            ge=0,
-            le=10
-        ),
+        config: Path = Input(description="JSON configuration file for frame segments (required)", default=None),
+ 
         output_video_quality: int = Input(
             description="Output video quality (1-100)",
             default=80,
@@ -63,69 +60,12 @@ class Predictor(BasePredictor):
         if not is_video:
             raise ValueError("Target must be a video file for multi-frame processing")
         
-        # Define the specific frame ranges and settings for each iteration
-        iterations_config = [
-            {
-                "trim_frame_start": 0,
-                "trim_frame_end": 61,
-                "reference_frame_number": 19,
-                "reference_face_position": 1,  # Override: use position 1 for this segment
-                "face_mask_types": ["occlusion", "region"],
-                "face_mask_padding": None,
-                "reference_face_distance": 0.65,
-                "skip_audio": True    # Default value
-            },
-            {
-                "trim_frame_start": 62,
-                "trim_frame_end": 105,
-                "reference_frame_number": 100,
-                "reference_face_position": 0,
-                "face_mask_types": ["occlusion", "region", "box"],
-                "face_mask_padding": [45, 0, 23, 22],
-                "reference_face_distance": 0.65,
-                "skip_audio": True
-            },
-            {
-                "trim_frame_start": 106,
-                "trim_frame_end": 147,
-                "reference_frame_number": 106,  # Using start frame as reference
-                "reference_face_position": 0,
-                "face_mask_types": ["occlusion", "region", "box"],
-                "face_mask_padding": [52, 0, 23, 22],
-                "reference_face_distance": 0.65,
-                "skip_audio": True
-            },
-            {
-                "trim_frame_start": 148,
-                "trim_frame_end": 241,
-                "reference_frame_number": 198,
-                "reference_face_position": 0,
-                "face_mask_types": ["occlusion", "region", "box"],
-                "face_mask_padding": [52, 0, 0, 22],
-                "reference_face_distance": 0.65,
-                "skip_audio": True
-            },
-            {
-                "trim_frame_start": 242,
-                "trim_frame_end": 565,
-                "reference_frame_number": 479,
-                "reference_face_position": 0,
-                "face_mask_types": ["occlusion", "region"],
-                "face_mask_padding": None,
-                "reference_face_distance": 0.65,
-                "skip_audio": True
-            },
-            {
-                "trim_frame_start": 583,
-                "trim_frame_end": 625,
-                "reference_frame_number": 605,  # Using start frame as reference
-                "reference_face_position": 0,
-                "face_mask_types": ["occlusion", "region", "box"],
-                "face_mask_padding": [45, 0, 0, 0],  # Single value expanded to all sides
-                "reference_face_distance": 0.8,
-                "skip_audio": True
-            }
-        ]
+        # Parse the configuration file - it's required now
+        if not config or not os.path.exists(config):
+            raise ValueError("Configuration file is required. Please provide a valid config.json file.")
+            
+        print(f"Using configuration file: {config}")
+        iterations_config = self._parse_config_file(config)
         
         # Get video info
         video_info = self._get_video_info(str(target))
@@ -430,6 +370,50 @@ class Predictor(BasePredictor):
             print(f"Warning: Could not delete temporary audio file {audio_temp_path}: {str(e)}")
         
         return Path(final_output_path)
+    
+    def _parse_config_file(self, config_path: Path) -> list:
+        """Parse the JSON configuration file and return a list of segment configurations."""
+        try:
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+            
+            # Validate the config structure
+            if 'iterations' not in config_data:
+                raise ValueError("Configuration file must have an 'iterations' array")
+            
+            iterations = config_data['iterations']
+            if not isinstance(iterations, list) or len(iterations) == 0:
+                raise ValueError("'iterations' must be a non-empty array")
+            
+            # Process each iteration in the config
+            iterations_config = []
+            for i, iteration in enumerate(iterations):
+                # Check for required fields
+                required_fields = ['trim_frame_start', 'trim_frame_end', 'reference_frame_number']
+                for field in required_fields:
+                    if field not in iteration:
+                        raise ValueError(f"Iteration {i+1} is missing required field '{field}'")
+                
+                # Create the configuration dictionary with defaults for optional fields
+                segment_config = {
+                    "trim_frame_start": int(iteration['trim_frame_start']),
+                    "trim_frame_end": int(iteration['trim_frame_end']),
+                    "reference_frame_number": int(iteration['reference_frame_number']),
+                    "reference_face_position": int(iteration.get('reference_face_position', 0)),
+                    "face_mask_types": iteration.get('face_mask_types', ["occlusion", "region"]),
+                    "face_mask_padding": iteration.get('face_mask_padding'),
+                    "reference_face_distance": float(iteration.get('reference_face_distance', 0.65)),
+                    "skip_audio": bool(iteration.get('skip_audio', True))
+                }
+                
+                iterations_config.append(segment_config)
+            
+            return iterations_config
+            
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in configuration file: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Error reading configuration file: {str(e)}")
     
     def _find_non_processed_ranges(self, iterations_config, total_frame_count=None):
         """Find frame ranges that are not processed by any iteration in a more efficient way."""

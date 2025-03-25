@@ -19,3 +19,4 @@ __pycache__
 #Project-Specific
 tmp/
 static_assets/
+config.json
