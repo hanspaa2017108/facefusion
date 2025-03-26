@@ -416,18 +416,26 @@ class Predictor(BasePredictor):
             raise ValueError(f"Error reading configuration file: {str(e)}")
     
     def _find_non_processed_ranges(self, iterations_config, total_frame_count=None):
-        """Find frame ranges that are not processed by any iteration in a more efficient way."""
+        """Find frame ranges that are not processed by any iteration."""
         if not iterations_config:
             return []
+        
         # Sort the iterations based on frame start
         iterations_config = sorted(iterations_config, key=lambda x: x["trim_frame_start"])
+        
         # Initialize non-processed range tracking
         non_processed_ranges = []
         min_frame = iterations_config[0]["trim_frame_start"]
-        max_processed_frame = iterations_config[-1]["trim_frame_end"]
         
-        # Start checking for gaps
-        last_end = min_frame - 1  # Initial frame before the first processed range
+        # Check if there are frames before the first processed frame (0 to min_frame-1)
+        if min_frame > 0:
+            non_processed_ranges.append({
+                "start": 0,
+                "end": min_frame - 1
+            })
+        
+        # Start checking for gaps between processed segments
+        last_end = min_frame - 1
         for config in iterations_config:
             start = config["trim_frame_start"]
             end = config["trim_frame_end"]
